@@ -125,6 +125,15 @@ BOOL CStitchImagesDlg::OnInitDialog()
 	pEdit= (CEdit*)GetDlgItem(EDIT_SCALE_DOWN);
 	pEdit->SetWindowText(_T("1"));   //设置缩小倍数默认为1
 
+	bool is_password_correct = PasswordCheck();
+	if (!is_password_correct)
+	{
+		AfxMessageBox(_T("密码错误！"));
+		GetDlgItem(BT_SELECT_PICS)->EnableWindow(FALSE);//让选择图片文件按钮暂时不能点击
+		GetDlgItem(BT_SELECT_SAVEPATH)->EnableWindow(FALSE);//让选择保存路径按钮暂时不能点击
+		GetDlgItem(BT_STITCH_PICS)->EnableWindow(FALSE);//让拼接图片按钮暂时不能点击
+	}
+
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
 
@@ -178,6 +187,58 @@ HCURSOR CStitchImagesDlg::OnQueryDragIcon()
 }
 
 
+//校验密码文件是否正确
+bool CStitchImagesDlg::PasswordCheck()
+{
+	// 1.读取password.ini文件中的密码
+	ifstream input;
+	string pw_file;
+	input.exceptions(std::ifstream::failbit | std::ifstream::badbit);// 这句代码的意思是可以保证输入流对象可以正常抛出异常
+	try {
+		input.open(".//password.ini");
+		getline(input, pw_file);
+		input.close();
+	}
+	catch (std::ifstream::failure error)
+	{
+		AfxMessageBox(_T("无法打开password.ini文件！"));
+		return false;
+	}
+
+	// 2.计算过了多少个半年
+	CTime t1(2020, 6, 1, 0, 0, 0); // 设定起始日期为 2020.6.1 00:00
+	CTime t2;
+	t2 = CTime::GetCurrentTime(); //获取当前时间
+	CTimeSpan ts = t2 - t1;     // Subtract 2 CTimes
+	int days = ts.GetDays();   //获得相差天数
+	if (days < 0) days = -days;
+	int key = days / (30 * 6);  //每半年密码改一次
+
+	// 3.生成正确的密码
+	string pw_correct;
+	char letters[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+		'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',
+		'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T',
+		'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd',
+		'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
+		'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x',
+		'y', 'z' };
+	unsigned length = sizeof(letters) / sizeof(letters[0]);
+	unsigned k = key + 10;
+	for (int i = 0; i < 8; ++i)
+	{
+		k = k * 3 % 1024;
+		pw_correct.push_back(letters[(k%length)]);
+	}
+
+	// 4.判断password.ini文件中的密码是否正确
+	if (pw_file == pw_correct)
+		return true;
+	else
+		return false;
+}
+
+
 //按下“选择图片文件”按钮
 void CStitchImagesDlg::OnBnClickedSelectPics()
 {
@@ -209,7 +270,17 @@ void CStitchImagesDlg::OnBnClickedSelectPics()
 	if (count == 0)
 		MessageBox(_T("没有选择文件"), NULL, MB_OK | MB_ICONQUESTION);
 	else
-		sort(vecPicPaths.begin(), vecPicPaths.end());   //对路径名进行字典排序，使之有序
+		sort(vecPicPaths.begin(), vecPicPaths.end(), 
+			[](const CString& a, const CString& b)->bool 
+	{
+		int temp = StrCmpLogicalW(a, b);
+		bool result;
+		switch (temp) {
+		case -1:result = true; break;
+		default:result = false; break;
+		}
+		return result;
+	});   //对路径名进行排序，使之有序
 }
 
 

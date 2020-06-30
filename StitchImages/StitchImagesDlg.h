@@ -46,6 +46,7 @@ public:
 	int scale;   //缩小倍数
 	vector<CString> vecPicPaths;    //所选图片路径容器
 
+	bool PasswordCheck();   //校验密码文件是否正确
 	afx_msg void OnBnClickedSelectPics();   //按下“选择图片文件”按钮
 	afx_msg void OnBnClickedSelectSavepath();   //按下“选择保存路径”按钮
 	afx_msg void OnBnClickedStitchPics();   //按下“拼接图片”按钮
